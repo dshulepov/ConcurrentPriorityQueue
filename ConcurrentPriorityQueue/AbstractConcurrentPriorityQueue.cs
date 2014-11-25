@@ -24,7 +24,7 @@ namespace ConcurrentPriorityQueue
             }
         }
 
-        internal readonly Node[] _nodes;
+        internal Node[] _nodes;
         internal int _count;
         internal readonly NodeComparer _comparer;
 
@@ -71,6 +71,15 @@ namespace ConcurrentPriorityQueue
             Sink(1);
 
             return item;
+        }
+
+        public virtual void Clear()
+        {
+            for (int i = 1; i <= _count; i++)
+            {
+                _nodes[i] = null;
+            }
+            _count = 0;
         }
 
         internal Node[] CopyNodes()

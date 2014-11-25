@@ -15,10 +15,10 @@ namespace ConcurrentPriorityQueue
         private readonly object _sync = new object();
 
         /// <summary>
-        /// Create a new instance of priority queue with given capacity.
+        /// Create a new instance of priority queue with given fixed capacity.
         /// </summary>
         /// <param name="capacity">Maximum queue capacity. Should be greater than 0.</param>
-        /// <param name="comparer">Custom comparer for priority. Default for type will be used unless custom is provided.</param>
+        /// <param name="comparer">Priority comparer. Default for type will be used unless custom is provided.</param>
         public ConcurrentFixedSizePriorityQueue(int capacity, IComparer<TK> comparer = null):base(capacity, comparer)
         {
         }
@@ -47,6 +47,14 @@ namespace ConcurrentPriorityQueue
             return item;
         }
 
+        public override void Clear()
+        {
+            lock (_sync)
+            {
+                base.Clear();
+            }
+        }
+
         public IEnumerator<TD> GetEnumerator()
         {
             Node[] nodesCopy;
@@ -54,9 +62,9 @@ namespace ConcurrentPriorityQueue
             {
                 nodesCopy = CopyNodes();
             }
-            // queue copy is created to be able to extract the items in the priority order 
-            // (because they are not exactly in priority order in the underlying array)
+            // queue copy is created to be able to extract the items in the priority order
             // using the already existing dequeue method
+            // (because they are not exactly in priority order in the underlying array)
             var queueCopy = new ConcurrentFixedSizePriorityQueue<TD, TK>(nodesCopy, nodesCopy.Length - 1, _comparer);
 
             return new PriorityQueueEnumerator(queueCopy);

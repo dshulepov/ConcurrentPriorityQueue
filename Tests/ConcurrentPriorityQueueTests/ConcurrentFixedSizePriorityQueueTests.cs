@@ -12,23 +12,23 @@ using System.Threading.Tasks;
 namespace ConcurrentPriorityQueueTests
 {
     [TestFixture]
-    public class ConcurrentPriorityQueueTests
+    public class ConcurrentFixedSizePriorityQueueTests
     {
         [Test]
         public void Initialize()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(5);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(5);
 
             Assert.AreEqual(0, target.Count);
             Assert.AreEqual(5, target.Capacity);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => target = new ConcurrentPriorityQueue<string, int>(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => target = new ConcurrentFixedSizePriorityQueue<string, int>(0));
         }
 
         [Test]
         public void Enqueue()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(4);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(4);
 
             Assert.AreEqual(0, target.Count);
 
@@ -48,7 +48,7 @@ namespace ConcurrentPriorityQueueTests
         [Test]
         public void Dequeue()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(4);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(4);
             target.Enqueue("a", 1);
             target.Enqueue("b", 4);
             target.Enqueue("c", 3);
@@ -70,7 +70,7 @@ namespace ConcurrentPriorityQueueTests
         [Test]
         public void GetEnumerator()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(6);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(6);
             target.Enqueue("a", 1);
             target.Enqueue("b", 2);
             target.Enqueue("c", 3);
@@ -89,7 +89,7 @@ namespace ConcurrentPriorityQueueTests
         [Test]
         public void EnqueueAfterExceedingCapacity()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(3);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(3);
 
             Assert.AreEqual(0, target.Count);
 
@@ -98,21 +98,20 @@ namespace ConcurrentPriorityQueueTests
             target.Enqueue("c", 3);
 
             target.Enqueue("d", 4);
-            Assert.AreEqual(4, target.Count);
-            Assert.AreEqual(6, target.Capacity);
+            Assert.AreEqual(3, target.Count);
             string result = string.Join(",", target);
-            Assert.AreEqual("d,c,b,a", result);
+            Assert.AreEqual("d,b,a", result);
 
             target.Enqueue("e", 0);
-            Assert.AreEqual(5, target.Count);
+            Assert.AreEqual(3, target.Count);
             result = string.Join(",", target);
-            Assert.AreEqual("d,c,b,a,e", result);
+            Assert.AreEqual("b,a,e", result);
         }
 
         [Test]
         public void EnqueueDequeue()
         {
-            var target = new ConcurrentPriorityQueue<string, int>(7);
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(7);
 
             target.Enqueue("a", 7);
             target.Enqueue("b", 6);
@@ -130,48 +129,47 @@ namespace ConcurrentPriorityQueueTests
         [Test]
         public void SingleThreadTiming()
         {
-            const int Count = 100000;
-            var target = new ConcurrentPriorityQueue<string, int>();
+            const int Capacity = 100000;
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(Capacity);
             var watcher = new Stopwatch();
 
             watcher.Start();
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < Capacity; i++)
             {
                 target.Enqueue("a", 1);
             }
             watcher.Stop();
-            Assert.AreEqual(Count, target.Count);
-            // TODO check capacity
-            Console.WriteLine("Enqueue {0} elements: {1}", Count, watcher.Elapsed);
+            Assert.AreEqual(Capacity, target.Count);
+            Assert.AreEqual(Capacity, target.Capacity);
+            Console.WriteLine("Enqueue {0} elements: {1}", Capacity, watcher.Elapsed);
 
             watcher.Restart();
             // ReSharper disable once UnusedVariable
             var enumerator = target.GetEnumerator();
             watcher.Stop();
-            Console.WriteLine("Get enumerator for {0} elements: {1}", Count, watcher.Elapsed);
+            Console.WriteLine("Get enumerator for {0} elements: {1}", Capacity, watcher.Elapsed);
 
             watcher.Restart();
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < Capacity; i++)
             {
                 target.Dequeue();
             }
             watcher.Stop();
             Assert.AreEqual(0, target.Count);
-            // TODO check capcity
-            Console.WriteLine("Dequeue {0} elements: {1}", Count, watcher.Elapsed);
+            Console.WriteLine("Dequeue {0} elements: {1}", Capacity, watcher.Elapsed);
 
             watcher.Start();
-            for (int i = 0; i < 2 * Count; i++)
+            for (int i = 0; i < 2 * Capacity; i++)
             {
                 target.Enqueue("a", 1);
             }
             watcher.Stop();
-            Assert.AreEqual(2 * Count, target.Count);
-            // TODO check capcity
-            Console.WriteLine("Enqueue twice the capacity of {0} elements: {1}", Count, watcher.Elapsed);
+            Assert.AreEqual(Capacity, target.Count);
+            Assert.AreEqual(Capacity, target.Capacity);
+            Console.WriteLine("Enqueue twice the capacity of {0} elements: {1}", Capacity, watcher.Elapsed);
         }
 
-        private void ThreadEnqueue(ConcurrentPriorityQueue<string, DateTime> queue, int count)
+        private void ThreadEnqueue(ConcurrentFixedSizePriorityQueue<string, DateTime> queue, int count)
         {
             var threadName = string.Format("Thread {0}", Thread.CurrentThread.ManagedThreadId);
             for (int i = 0; i < count; i++)
@@ -180,7 +178,7 @@ namespace ConcurrentPriorityQueueTests
             }
         }
 
-        private void ThreadDequeue(ConcurrentPriorityQueue<string, DateTime> queue, int count)
+        private void ThreadDequeue(ConcurrentFixedSizePriorityQueue<string, DateTime> queue, int count)
         {
             for (int i = 0; i < count; i++)
             {
@@ -194,7 +192,7 @@ namespace ConcurrentPriorityQueueTests
             const int Capacity = 100000;
             const int ThreadsCount = 100;
             const int Count = Capacity / ThreadsCount;
-            var target = new ConcurrentPriorityQueue<string, DateTime>(Capacity);
+            var target = new ConcurrentFixedSizePriorityQueue<string, DateTime>(Capacity);
 
             var watcher = new Stopwatch();
 
@@ -213,7 +211,7 @@ namespace ConcurrentPriorityQueueTests
             watcher.Start();
             Parallel.For(0, ThreadsCount, index => ThreadEnqueue(target, 2 * Count));
             watcher.Stop();
-            Assert.AreEqual(2 * Capacity, target.Count);
+            Assert.AreEqual(Capacity, target.Count);
             Console.WriteLine("{0} thread each enqueue twice as {1} elements: {2}", ThreadsCount, Count, watcher.Elapsed);
         }
     }
