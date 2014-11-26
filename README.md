@@ -1,4 +1,4 @@
 ConcurrentPriorityQueue
 =======================
 
-Heap-based implementation of concurrent priority queue.
+Heap-based C# implementation of concurrent priority queue for .NET
