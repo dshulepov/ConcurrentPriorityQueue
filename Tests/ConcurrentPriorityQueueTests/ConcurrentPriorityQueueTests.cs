@@ -1,20 +1,17 @@
 ﻿using ConcurrentPriorityQueue;
-using NUnit.Framework;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ConcurrentPriorityQueueTests
 {
-    [TestFixture]
+    [TestClass]
     public class ConcurrentPriorityQueueTests
     {
-        [Test]
+        [TestMethod]
         public void Initialize()
         {
             var target = new ConcurrentPriorityQueue<string, int>(5);
@@ -22,10 +19,10 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual(0, target.Count);
             Assert.AreEqual(5, target.Capacity);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => target = new ConcurrentPriorityQueue<string, int>(0));
+            AssertEx.Throws<ArgumentOutOfRangeException>(() => target = new ConcurrentPriorityQueue<string, int>(0));
         }
 
-        [Test]
+        [TestMethod]
         public void Enqueue()
         {
             var target = new ConcurrentPriorityQueue<string, int>(4);
@@ -45,7 +42,7 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual(4, target.Count);
         }
 
-        [Test]
+        [TestMethod]
         public void Dequeue()
         {
             var target = new ConcurrentPriorityQueue<string, int>(4);
@@ -64,10 +61,10 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual("a", target.Dequeue());
             Assert.AreEqual(0, target.Count);
 
-            Assert.Throws<InvalidOperationException>(() => target.Dequeue());
+            AssertEx.Throws<InvalidOperationException>(() => target.Dequeue());
         }
 
-        [Test]
+        [TestMethod]
         public void GetEnumerator()
         {
             var target = new ConcurrentPriorityQueue<string, int>(6);
@@ -86,7 +83,7 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual("e,d,c,b,a", result);
         }
 
-        [Test]
+        [TestMethod]
         public void EnqueueAfterExceedingCapacity()
         {
             var target = new ConcurrentPriorityQueue<string, int>(3);
@@ -109,7 +106,7 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual("d,c,b,a,e", result);
         }
 
-        [Test]
+        [TestMethod]
         public void EnqueueDequeue()
         {
             var target = new ConcurrentPriorityQueue<string, int>(7);
@@ -127,7 +124,7 @@ namespace ConcurrentPriorityQueueTests
             Assert.AreEqual(0, target.Count);
         }
 
-        [Test]
+        [TestMethod]
         public void SingleThreadTiming()
         {
             const int Count = 100000;
@@ -188,7 +185,7 @@ namespace ConcurrentPriorityQueueTests
             }
         }
 
-        [Test]
+        [TestMethod]
         public void MultiThreadEnqueue()
         {
             const int Capacity = 100000;
