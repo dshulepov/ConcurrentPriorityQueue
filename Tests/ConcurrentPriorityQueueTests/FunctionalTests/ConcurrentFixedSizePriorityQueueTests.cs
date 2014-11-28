@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Linq;
 using ConcurrentPriorityQueue;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -62,6 +63,36 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
         }
 
         [TestMethod]
+        public void Peek()
+        {
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(4);
+            target.Enqueue("a", 1);
+
+            Assert.AreEqual("a", target.Peek());
+            Assert.AreEqual(1, target.Count);
+
+            target.Enqueue("b", 4);
+
+            Assert.AreEqual("b", target.Peek());
+            Assert.AreEqual(2, target.Count);
+
+            target.Enqueue("c", 3);
+
+            Assert.AreEqual("b", target.Peek());
+            Assert.AreEqual(3, target.Count);
+
+            target.Enqueue("d", 2);
+
+            Assert.AreEqual("b", target.Peek());
+            Assert.AreEqual(4, target.Count);
+
+            target.Dequeue();
+
+            Assert.AreEqual("c", target.Peek());
+            Assert.AreEqual(3, target.Count);
+        }
+
+        [TestMethod]
         public void GetEnumerator()
         {
             var target = new ConcurrentFixedSizePriorityQueue<string, int>(6);
@@ -118,6 +149,20 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             Assert.AreEqual("c", target.Dequeue());
             Assert.AreEqual("d", target.Dequeue());
             Assert.AreEqual(0, target.Count);
+        }
+
+        [TestMethod]
+        public void Clear()
+        {
+            var target = new ConcurrentFixedSizePriorityQueue<string, int>(7);
+
+            target.Enqueue("a", 7);
+            target.Enqueue("b", 6);
+            target.Enqueue("c", 5);
+            
+            target.Clear();
+            Assert.AreEqual(0, target.Count);
+            Assert.AreEqual(0, target.ToArray().Length);
         }
     }
 }

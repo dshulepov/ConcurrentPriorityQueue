@@ -70,6 +70,13 @@ namespace ConcurrentPriorityQueue
             return item;
         }
 
+        public TD Peek()
+        {
+            if (_count == 0) throw new InvalidOperationException("Unable to peek from empty queue.");
+
+            return _nodes[1].Data;   // first element at 1
+        }
+
         public virtual void Clear()
         {
             for (int i = 1; i <= _count; i++)
