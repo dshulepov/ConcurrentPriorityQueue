@@ -135,6 +135,25 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
         }
 
         [TestMethod]
+        public void DequeueWithTooBigCapacity()
+        {
+            var target = new ConcurrentPriorityQueue<string, int>(50);
+
+            for (var i = 0; i < 13; i++)
+            {
+                target.Enqueue("a", i);    
+            }
+            Assert.AreEqual(50, target.Capacity);
+            Assert.AreEqual(13, target.Count);
+            target.Dequeue();
+            Assert.AreEqual(25, target.Capacity);
+            Assert.AreEqual(12, target.Count);
+            target.Dequeue();
+            Assert.AreEqual(25, target.Capacity);
+            Assert.AreEqual(11, target.Count);
+        }
+
+        [TestMethod]
         public void EnqueueDequeue()
         {
             var target = new ConcurrentPriorityQueue<string, int>(7);
