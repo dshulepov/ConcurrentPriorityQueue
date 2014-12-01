@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,91 +14,133 @@ namespace ConcurrentPriorityQueueTests.PerformanceTests
         [TestMethod]
         public void SingleThreadTiming()
         {
-            const int Count = 1000000;
+            const int count = 1000000;
             var target = new ConcurrentPriorityQueue<string, int>();
             var watcher = new Stopwatch();
 
             watcher.Start();
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < count; i++)
             {
                 target.Enqueue("a", 1);
             }
             watcher.Stop();
-            Assert.AreEqual(Count, target.Count);
+            Assert.AreEqual(count, target.Count);
             // TODO check capacity
-            Console.WriteLine("Enqueue {0} elements: {1}", Count, watcher.Elapsed);
+            Console.WriteLine("Enqueue {0} elements: {1}", count, watcher.Elapsed);
 
             watcher.Restart();
             // ReSharper disable once UnusedVariable
             var enumerator = target.GetEnumerator();
             watcher.Stop();
-            Console.WriteLine("Get enumerator for {0} elements: {1}", Count, watcher.Elapsed);
+            Console.WriteLine("Get enumerator for {0} elements: {1}", count, watcher.Elapsed);
 
             watcher.Restart();
-            for (int i = 0; i < Count; i++)
+            for (int i = 0; i < count; i++)
             {
                 target.Dequeue();
             }
             watcher.Stop();
             Assert.AreEqual(0, target.Count);
             // TODO check capcity
-            Console.WriteLine("Dequeue {0} elements: {1}", Count, watcher.Elapsed);
+            Console.WriteLine("Dequeue {0} elements: {1}", count, watcher.Elapsed);
 
             watcher.Start();
-            for (int i = 0; i < 2 * Count; i++)
+            for (int i = 0; i < 2*count; i++)
             {
                 target.Enqueue("a", 1);
             }
             watcher.Stop();
-            Assert.AreEqual(2 * Count, target.Count);
+            Assert.AreEqual(2*count, target.Count);
             // TODO check capcity
-            Console.WriteLine("Enqueue twice the capacity of {0} elements: {1}", Count, watcher.Elapsed);
-        }
-
-        private void ThreadEnqueue(ConcurrentPriorityQueue<string, DateTime> queue, int count)
-        {
-            var threadName = string.Format("Thread {0}", Thread.CurrentThread.ManagedThreadId);
-            for (int i = 0; i < count; i++)
-            {
-                queue.Enqueue(threadName, new DateTime());
-            }
-        }
-
-        private void ThreadDequeue(ConcurrentPriorityQueue<string, DateTime> queue, int count)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                queue.Dequeue();
-            }
+            Console.WriteLine("Enqueue twice the capacity of {0} elements: {1}", count, watcher.Elapsed);
         }
 
         [TestMethod]
         public void MultiThreadEnqueue()
         {
-            const int Capacity = 1000000;
-            const int ThreadsCount = 100;
-            const int Count = Capacity / ThreadsCount;
-            var target = new ConcurrentPriorityQueue<string, DateTime>(Capacity);
+            const int capacity = 1000000;
+            const int threadsCount = 100;
+            const int count = capacity/threadsCount;
+            var target = new ConcurrentPriorityQueue<string, DateTime>();
+
+            var execStats = new ExecWithStats[threadsCount];
 
             var watcher = new Stopwatch();
 
+            // several threads enqueue elements
             watcher.Start();
-            Parallel.For(0, ThreadsCount, index => ThreadEnqueue(target, Count));
-            watcher.Stop();
-            Assert.AreEqual(Capacity, target.Count);
-            Console.WriteLine("{0} thread each enqueue {1} elements: {2}", ThreadsCount, Count, watcher.Elapsed);
+            Parallel.For(0, threadsCount, index =>
+            {
+                execStats[index] = new ExecWithStats(string.Format("Enqueue {0}", count), count, () => target.Enqueue("a", new DateTime()));
+                execStats[index].Exec();
+            });
 
+            watcher.Stop();
+            Assert.AreEqual(capacity, target.Count);
+            Console.WriteLine("{0} threads each enqueue {1} elements. total time: {2}\n", threadsCount, count, watcher.Elapsed);
+            ExecWithStats.OutputStatsSummary(execStats);
+
+            // several threads dequeue elements
             watcher.Start();
-            Parallel.For(0, ThreadsCount, index => ThreadDequeue(target, Count));
+            Parallel.For(0, threadsCount, index =>
+            {
+                execStats[index] = new ExecWithStats(string.Format("Dequeue {0}", count), count, () => target.Dequeue());
+                execStats[index].Exec();                
+            });
             watcher.Stop();
             Assert.AreEqual(0, target.Count);
-            Console.WriteLine("{0} thread each dequeue {1} elements: {2}", ThreadsCount, Count, watcher.Elapsed);
+            Console.WriteLine("\n{0} threads each dequeue {1} elements. total time: {2}\n", threadsCount, count, watcher.Elapsed);
+            ExecWithStats.OutputStatsSummary(execStats);
+        }
 
-            watcher.Start();
-            Parallel.For(0, ThreadsCount, index => ThreadEnqueue(target, 2 * Count));
-            watcher.Stop();
-            Assert.AreEqual(2 * Capacity, target.Count);
-            Console.WriteLine("{0} thread each enqueue twice as {1} elements: {2}", ThreadsCount, Count, watcher.Elapsed);
+        [TestMethod]
+        public void RaceWithStats()
+        {
+            const int capacity = 1000000;
+            const int threadsCount = 100;
+            const int count = capacity/threadsCount;
+            var target = new ConcurrentPriorityQueue<string, DateTime>();
+            var execStats = new List<ExecWithStats>();
+            var threadWait = new CountdownEvent(threadsCount);
+
+            // odd threads will enqueue elements, while even threads will dequeue
+            // obviously there will be a race condition and especially in the beginning dequeue will throw, because queue will often be empty
+            // the total number of exceptions on dequeue threads will correspond the the number of items left in the queue
+
+            for (var i = 0; i < threadsCount; i++)
+            {
+                ExecWithStats exec;
+                if (i%2 != 0)
+                {
+                    exec = new ExecWithStats(string.Format("Enqueue {0} elements", count), count, () => target.Enqueue("a", new DateTime()), threadWait);
+                }
+                else
+                {
+                    exec = new ExecWithStats(string.Format("Dequeue {0} elements", count), count, () => target.Dequeue(), threadWait);
+                }
+
+                execStats.Add(exec);
+
+                var thread = new Thread(() => exec.Exec());
+                thread.Start();
+            }
+
+            // Wait for all threads in pool to calculate.
+            threadWait.Wait();
+
+            // Output stats summary
+            ExecWithStats.OutputStatsSummary(execStats);
+
+            // Output queue state
+            Console.WriteLine("Queue count:{0}, capacity:{1}", target.Count, target.Capacity);
+
+            // Un-comment for a detailed list of stats
+            //Console.WriteLine("---------------------");
+            //foreach (var execStat in execStats)
+            //{
+            //    var stats = execStat.GetStats();
+            //    Console.WriteLine("Name:{0}, Min: {1}, Median: {2}, Max {3}, Exceptions: {4}", stats.Name, stats.Min, stats.Med, stats.Max, stats.ExceptionsCount);
+            //}
         }
     }
 }
