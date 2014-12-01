@@ -130,6 +130,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
 
             target.Enqueue("e", 0);
             Assert.AreEqual(5, target.Count);
+            Assert.AreEqual(6, target.Capacity);
             result = string.Join(",", target);
             Assert.AreEqual("d,c,b,a,e", result);
         }
@@ -183,6 +184,23 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             target.Clear();
             Assert.AreEqual(0, target.Count);
             Assert.AreEqual(0, target.ToArray().Length);
+        }
+
+        [TestMethod]
+        public void Trim()
+        {
+            var target = new ConcurrentPriorityQueue<string, int>(2);
+            int expectedCapacity = target.Capacity;
+            for (var i = 0; i < 10; i++)
+            {
+                if (target.Count == target.Capacity) expectedCapacity = expectedCapacity * ConcurrentPriorityQueue<string, int>._resizeFactor;
+                target.Enqueue("a", i);
+            }
+            Assert.AreEqual(expectedCapacity, target.Capacity);
+            string items = string.Join(",", target);
+            target.Trim();
+            Assert.AreEqual(10, target.Capacity);
+            Assert.AreEqual(items, string.Join(",", target));
         }
     }
 }

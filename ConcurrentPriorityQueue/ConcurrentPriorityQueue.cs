@@ -5,14 +5,14 @@ using System.Collections.Generic;
 namespace ConcurrentPriorityQueue
 {
     /// <summary>
-    /// Heap-based implementation of concurrent priority queue.
+    /// Heap-based implementation of concurrent priority queue. Max priority is on top of the heap.
     /// </summary>
     public class ConcurrentPriorityQueue<TD, TK> : AbstractPriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
     {
         private readonly object _sync = new object();
         private const int _defaultCapacity = 10;
-        private const int _resizeFactor = 2;
-        private const int _shrinkRatio = 4;
+        internal const int _resizeFactor = 2;
+        internal const int _shrinkRatio = 4;
 
         private int _shrinkBound;
 
@@ -54,6 +54,16 @@ namespace ConcurrentPriorityQueue
             }
 
             return item;
+        }
+
+        public void Trim()
+        {
+            lock (_sync)
+            {
+                int newCapacity = _count;
+                Array.Resize(ref _nodes, newCapacity + 1);  // first element is at position 1
+                _shrinkBound = newCapacity / _shrinkRatio;
+            }
         }
 
         public override void Clear()

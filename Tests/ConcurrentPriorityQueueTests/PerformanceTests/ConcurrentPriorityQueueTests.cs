@@ -15,7 +15,7 @@ namespace ConcurrentPriorityQueueTests.PerformanceTests
         public void SingleThreadTiming()
         {
             const int count = 1000000;
-            var target = new ConcurrentPriorityQueue<string, int>();
+            var target = new ConcurrentPriorityQueue<string, int>(2);
             var watcher = new Stopwatch();
 
             watcher.Start();
@@ -25,7 +25,6 @@ namespace ConcurrentPriorityQueueTests.PerformanceTests
             }
             watcher.Stop();
             Assert.AreEqual(count, target.Count);
-            // TODO check capacity
             Console.WriteLine("Enqueue {0} elements: {1}", count, watcher.Elapsed);
 
             watcher.Restart();
@@ -41,7 +40,6 @@ namespace ConcurrentPriorityQueueTests.PerformanceTests
             }
             watcher.Stop();
             Assert.AreEqual(0, target.Count);
-            // TODO check capcity
             Console.WriteLine("Dequeue {0} elements: {1}", count, watcher.Elapsed);
 
             watcher.Start();
@@ -51,7 +49,6 @@ namespace ConcurrentPriorityQueueTests.PerformanceTests
             }
             watcher.Stop();
             Assert.AreEqual(2*count, target.Count);
-            // TODO check capcity
             Console.WriteLine("Enqueue twice the capacity of {0} elements: {1}", count, watcher.Elapsed);
         }
 
