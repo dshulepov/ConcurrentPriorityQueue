@@ -202,5 +202,44 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             Assert.AreEqual(10, target.Capacity);
             Assert.AreEqual(items, string.Join(",", target));
         }
+
+        [TestMethod]
+        public void Contains()
+        {
+            var target = new ConcurrentPriorityQueue<string, int>(5);
+            target.Enqueue("a", 1);
+            target.Enqueue("b", 1);
+            target.Enqueue("c", 1);
+            target.Enqueue("a", 1);
+            target.Enqueue(null, 4);
+
+            Assert.IsTrue(target.Contains("a"));
+            Assert.IsTrue(target.Contains("b"));
+            Assert.IsTrue(target.Contains("c"));
+            Assert.IsFalse(target.Contains("d"));
+            Assert.IsTrue(target.Contains(null));
+        }
+
+        [TestMethod]
+        public void EqualsForObjects()
+        {
+            var target = new ConcurrentPriorityQueue<string, int>(4);
+
+            Assert.IsTrue(target.Equals("a", "a"));
+            Assert.IsFalse(target.Equals("a", "b"));
+            Assert.IsFalse(target.Equals("a", null));
+            Assert.IsFalse(target.Equals(null, "a"));
+            Assert.IsTrue(target.Equals(null, null));
+        }
+
+        [TestMethod]
+        public void EqualsForValueTypes()
+        {
+            var target = new ConcurrentPriorityQueue<int, int>(4);
+
+            Assert.IsTrue(target.Equals(1, 1));
+            Assert.IsFalse(target.Equals(1, 2));
+            Assert.IsFalse(target.Equals(2, 1));
+        }
     }
 }

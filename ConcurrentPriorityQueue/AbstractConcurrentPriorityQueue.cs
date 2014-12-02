@@ -24,6 +24,7 @@ namespace ConcurrentPriorityQueue
         internal Node[] _nodes;
         internal int _count;
         internal readonly NodeComparer _comparer;
+        private readonly bool _dataIsValueType;
 
         internal AbstractPriorityQueue(int capacity, IComparer<TK> comparer = null)
         {
@@ -32,6 +33,7 @@ namespace ConcurrentPriorityQueue
             _nodes = new Node[capacity + 1];        // first element at 1
             _count = 0;
             _comparer = new NodeComparer(comparer ?? Comparer<TK>.Default);
+            _dataIsValueType = typeof (TD).IsValueType;
         }
 
         internal AbstractPriorityQueue(Node[] nodes, int count, NodeComparer comparer)
@@ -39,11 +41,40 @@ namespace ConcurrentPriorityQueue
             _nodes = nodes;
             _count = count;
             _comparer = comparer;
+            _dataIsValueType = typeof(TD).IsValueType;
         }
 
         public int Capacity { get { return _nodes.Length - 1; } }
 
         public int Count { get { return _count; } }
+
+        public virtual bool Contains(TD item)
+        {
+            return GetItemIndex(item) > 0;
+        }
+
+        internal int GetItemIndex(TD item)
+        {
+            for (int i = 1; i <= _count; i++)
+            {
+                if (Equals(_nodes[i].Data, item)) return i;
+            }
+            return 0;            
+        }
+
+        internal bool Equals(TD a, TD b)
+        {
+            if (_dataIsValueType)
+            {
+                return a.Equals(b);
+            }
+
+            var objA = a as object;
+            var objB = b as object;
+            if (objA == null && objB == null) return true;
+            if (objA == null || objB == null) return false;
+            return objA.Equals(objB);
+        }
 
         public virtual void Enqueue(TD item, TK priority)
         {

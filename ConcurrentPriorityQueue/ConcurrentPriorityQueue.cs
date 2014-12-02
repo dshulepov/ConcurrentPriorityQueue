@@ -74,6 +74,14 @@ namespace ConcurrentPriorityQueue
             }
         }
 
+        public override bool Contains(TD item)
+        {
+            lock (_sync)
+            {
+                return base.Contains(item);
+            }
+        }
+
         public IEnumerator<TD> GetEnumerator()
         {
             Node[] nodesCopy;
