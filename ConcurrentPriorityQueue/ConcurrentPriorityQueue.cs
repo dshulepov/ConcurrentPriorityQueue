@@ -7,7 +7,7 @@ namespace ConcurrentPriorityQueue
     /// <summary>
     /// Heap-based implementation of concurrent priority queue. Max priority is on top of the heap.
     /// </summary>
-    public class ConcurrentPriorityQueue<TD, TK> : PriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
+    public class ConcurrentPriorityQueue<TD, TK> : AbstractPriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
     {
         private readonly object _sync = new object();
         private const int _defaultCapacity = 10;

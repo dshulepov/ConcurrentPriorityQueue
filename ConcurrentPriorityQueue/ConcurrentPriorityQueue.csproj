@@ -35,7 +35,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="PriorityQueue.cs" />
+    <Compile Include="AbstractConcurrentPriorityQueue.cs" />
     <Compile Include="ConcurrentPriorityQueue.cs" />
     <Compile Include="ConcurrentFixedSizePriorityQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

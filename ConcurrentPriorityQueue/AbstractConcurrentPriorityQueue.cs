@@ -7,7 +7,7 @@ namespace ConcurrentPriorityQueue
     /// <summary>
     /// Heap-based implementation of priority queue.
     /// </summary>
-    public class PriorityQueue<TD, TK> where TK : IComparable<TK>
+    public abstract class AbstractPriorityQueue<TD, TK> where TK : IComparable<TK>
     {
         internal sealed class Node
         {
@@ -26,7 +26,7 @@ namespace ConcurrentPriorityQueue
         internal readonly NodeComparer _comparer;
         private readonly bool _dataIsValueType;
 
-        internal PriorityQueue(int capacity, IComparer<TK> comparer = null)
+        internal AbstractPriorityQueue(int capacity, IComparer<TK> comparer = null)
         {
             if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Expected capacity greater than zero.");
 
@@ -36,7 +36,7 @@ namespace ConcurrentPriorityQueue
             _dataIsValueType = typeof (TD).IsValueType;
         }
 
-        internal PriorityQueue(Node[] nodes, int count, NodeComparer comparer)
+        internal AbstractPriorityQueue(Node[] nodes, int count, NodeComparer comparer)
         {
             _nodes = nodes;
             _count = count;
@@ -199,7 +199,7 @@ namespace ConcurrentPriorityQueue
             private readonly TD[] _items;
             private int _currentIndex;
 
-            public PriorityQueueEnumerator(PriorityQueue<TD, TK> queueCopy)
+            public PriorityQueueEnumerator(AbstractPriorityQueue<TD, TK> queueCopy)
             {
                 _items = new TD[queueCopy.Count];
 

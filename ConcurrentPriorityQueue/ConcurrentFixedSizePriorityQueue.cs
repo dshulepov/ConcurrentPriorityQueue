@@ -7,7 +7,7 @@ namespace ConcurrentPriorityQueue
     /// <summary>
     /// Heap-based implementation of concurrent, fixed-size priority queue.
     /// </summary>
-    public class ConcurrentFixedSizePriorityQueue<TD, TK> : PriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
+    public class ConcurrentFixedSizePriorityQueue<TD, TK> : AbstractPriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
     {
         private readonly object _sync = new object();
 
