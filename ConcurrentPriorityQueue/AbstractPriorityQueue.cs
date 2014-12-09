@@ -7,17 +7,17 @@ namespace ConcurrentPriorityQueue
     /// <summary>
     /// Heap-based implementation of priority queue.
     /// </summary>
-    public abstract class AbstractPriorityQueue<TD, TK> where TK : IComparable<TK>
+    public abstract class AbstractPriorityQueue<TElement, TPriority> : IPriorityQueue<TElement, TPriority> where TPriority : IComparable<TPriority>
     {
         internal sealed class Node
         {
-            public readonly TK Key;
-            public readonly TD Data;
+            public TPriority Priority { get; internal set; }
+            public readonly TElement Element;
 
-            public Node(TD data, TK key)
+            public Node(TElement element, TPriority priority)
             {
-                Key = key;
-                Data = data;
+                Priority = priority;
+                Element = element;
             }
         }
 
@@ -26,43 +26,68 @@ namespace ConcurrentPriorityQueue
         internal readonly NodeComparer _comparer;
         private readonly bool _dataIsValueType;
 
-        internal AbstractPriorityQueue(int capacity, IComparer<TK> comparer = null)
+        /// <summary>
+        /// Create an empty max priority queue of given capacity.
+        /// </summary>
+        /// <param name="capacity">Queue capacity. Greater than 0.</param>
+        /// <param name="comparer">Priority comparer. Default type comparer will be used unless custom is provided.</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        internal AbstractPriorityQueue(int capacity, IComparer<TPriority> comparer = null)
         {
             if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Expected capacity greater than zero.");
 
             _nodes = new Node[capacity + 1];        // first element at 1
             _count = 0;
-            _comparer = new NodeComparer(comparer ?? Comparer<TK>.Default);
-            _dataIsValueType = typeof (TD).IsValueType;
+            _comparer = new NodeComparer(comparer ?? Comparer<TPriority>.Default);
+            _dataIsValueType = typeof (TElement).IsValueType;
         }
 
+        /// <summary>
+        /// Create a new priority queue from the given nodes storage and comparer.
+        /// Used to create existing queue copies. 
+        /// </summary>
+        /// <param name="nodes">Heap with data.</param>
+        /// <param name="count">Count of items in the heap.</param>
+        /// <param name="comparer">Node comparer for nodes in the queue.</param>
         internal AbstractPriorityQueue(Node[] nodes, int count, NodeComparer comparer)
         {
             _nodes = nodes;
             _count = count;
             _comparer = comparer;
-            _dataIsValueType = typeof(TD).IsValueType;
+            _dataIsValueType = typeof(TElement).IsValueType;
         }
 
         public int Capacity { get { return _nodes.Length - 1; } }
 
         public int Count { get { return _count; } }
 
-        public virtual bool Contains(TD item)
+        /// <summary>
+        /// Returns true if there is at least one item, which is equal to given.
+        /// TElement.Equals is used to compare equality.
+        /// </summary>
+        public virtual bool Contains(TElement item)
         {
             return GetItemIndex(item) > 0;
         }
 
-        internal int GetItemIndex(TD item)
+        /// <summary>
+        /// Returns index of the first occurrence of the given item or 0.
+        /// TElement.Equals is used to compare equality.
+        /// </summary>
+        private int GetItemIndex(TElement item)
         {
             for (int i = 1; i <= _count; i++)
             {
-                if (Equals(_nodes[i].Data, item)) return i;
+                if (Equals(_nodes[i].Element, item)) return i;
             }
             return 0;            
         }
 
-        internal bool Equals(TD a, TD b)
+        /// <summary>
+        /// Check if given data items are equal using TD.Equals.
+        /// Handles null values for object types.
+        /// </summary>
+        internal bool Equals(TElement a, TElement b)
         {
             if (_dataIsValueType)
             {
@@ -71,43 +96,50 @@ namespace ConcurrentPriorityQueue
 
             var objA = a as object;
             var objB = b as object;
-            if (objA == null && objB == null) return true;
+            if (objA == null && objB == null) return true;      // null == null because equality should be symmetric
             if (objA == null || objB == null) return false;
             return objA.Equals(objB);
         }
 
-        public virtual void Enqueue(TD item, TK priority)
+        public virtual void Enqueue(TElement item, TPriority priority)
         {
             int index = _count + 1;
             _nodes[index] = new Node(item, priority);
 
             _count = index;             // update count after the element is really added but before Sift
 
-            Sift(index);
+            Sift(index);                // move item "up" while heap principles are not met
         }
 
-        public virtual TD Dequeue()
+        public virtual TElement Dequeue()
         {
             if (_count == 0) throw new InvalidOperationException("Unable to dequeue from empty queue.");
 
-            TD item = _nodes[1].Data;   // first element at 1
+            TElement item = _nodes[1].Element;   // first element at 1
             Swap(1, _count);            // last element at _count
             _nodes[_count] = null;      // release hold on the object
 
             _count--;                   // update count after the element is really gone but before Sink
 
-            Sink(1);
+            Sink(1);                    // move item "down" while heap principles are not met
 
             return item;
         }
 
-        public TD Peek()
+        /// <summary>
+        /// Returns the first element in the queue (element with max priority) without removing it from the queue.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public virtual TElement Peek()
         {
             if (_count == 0) throw new InvalidOperationException("Unable to peek from empty queue.");
 
-            return _nodes[1].Data;   // first element at 1
+            return _nodes[1].Element;   // first element at 1
         }
 
+        /// <summary>
+        /// Remove all items from the queue. Capacity is not changed.
+        /// </summary>
         public virtual void Clear()
         {
             for (int i = 1; i <= _count; i++)
@@ -117,9 +149,37 @@ namespace ConcurrentPriorityQueue
             _count = 0;
         }
 
+        /// <summary>
+        /// Update priority of the first occurrence of the given item
+        /// </summary>
+        /// <param name="item">Item, which priority should be updated.</param>
+        /// <param name="priority">New priority</param>
+        /// <exception cref="ArgumentException"></exception>
+        public virtual void UpdatePriority(TElement item, TPriority priority)
+        {
+            var index = GetItemIndex(item);
+            if (index == 0) throw new ArgumentException("Item is not found in the queue.");
+
+            var priorityCompare = _comparer.Compare(_nodes[index].Priority, priority);
+            if (priorityCompare < 0)
+            {
+                _nodes[index].Priority = priority;
+                Sift(index);            // priority is increased, so item should go "up" the heap
+            }
+            else if (priorityCompare > 0)
+            {
+                _nodes[index].Priority = priority;
+                Sink(index);            // priority is decreased, so item should go "down" the heap
+            }
+        }
+
+        /// <summary>
+        /// Returns a copy of internal heap array. Number of elements is _count + 1;
+        /// </summary>
+        /// <returns></returns>
         internal Node[] CopyNodes()
         {
-            Node[] nodesCopy = new Node[_count + 1];
+            var nodesCopy = new Node[_count + 1];
             Array.Copy(_nodes, 0, nodesCopy, 0, _count + 1);
             return nodesCopy;
         }
@@ -129,6 +189,9 @@ namespace ConcurrentPriorityQueue
             return _comparer.Compare(i, j) >= 0;
         }
 
+        /// <summary>
+        /// Moves the item with given index "down" the heap while heap principles are not met.
+        /// </summary>
         private void Sink(int i)
         {
             while (true)
@@ -153,6 +216,9 @@ namespace ConcurrentPriorityQueue
             }
         }
 
+        /// <summary>
+        /// Moves the item with given index "up" the heap while heap principles are not met.
+        /// </summary>
         private void Sift(int i)
         {
             while (true)
@@ -175,11 +241,21 @@ namespace ConcurrentPriorityQueue
             _nodes[j] = tmp;
         }
 
-        internal sealed class NodeComparer : IComparer<Node>
-        {
-            private readonly IComparer<TK> _comparer;
+        public abstract IEnumerator<TElement> GetEnumerator();
 
-            public NodeComparer(IComparer<TK> comparer)
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        /// <summary>
+        /// Compare nodes based on priority or just priorities
+        /// </summary>
+        internal sealed class NodeComparer : IComparer<Node>, IComparer<TPriority>
+        {
+            private readonly IComparer<TPriority> _comparer;
+
+            public NodeComparer(IComparer<TPriority> comparer)
             {
                 _comparer = comparer;
             }
@@ -190,19 +266,29 @@ namespace ConcurrentPriorityQueue
                 if (x == null) return -1;
                 if (y == null) return 1;
 
-                return _comparer.Compare(x.Key, y.Key);
+                return _comparer.Compare(x.Priority, y.Priority);
+            }
+
+            public int Compare(TPriority x, TPriority y)
+            {
+                return _comparer.Compare(x, y);
             }
         }
 
-        internal sealed class PriorityQueueEnumerator : IEnumerator<TD>
+        /// <summary>
+        /// Queue items enumerator. Returns items in the oder of queue priority.
+        /// </summary>
+        internal sealed class PriorityQueueEnumerator : IEnumerator<TElement>
         {
-            private readonly TD[] _items;
+            private readonly TElement[] _items;
             private int _currentIndex;
 
-            public PriorityQueueEnumerator(AbstractPriorityQueue<TD, TK> queueCopy)
+            internal PriorityQueueEnumerator(AbstractPriorityQueue<TElement, TPriority> queueCopy)
             {
-                _items = new TD[queueCopy.Count];
+                _items = new TElement[queueCopy.Count];
 
+                // dequeue the given queue copy to extract items in order of priority
+                // enumerator is based on the new array to allow reset and multiple enumerations
                 for (int i = 0; i < _items.Length; i++)
                 {
                     _items[i] = queueCopy.Dequeue();
@@ -226,7 +312,7 @@ namespace ConcurrentPriorityQueue
                 _currentIndex = -1;
             }
 
-            public TD Current { get { return _items[_currentIndex]; } }
+            public TElement Current { get { return _items[_currentIndex]; } }
 
             object IEnumerator.Current
             {

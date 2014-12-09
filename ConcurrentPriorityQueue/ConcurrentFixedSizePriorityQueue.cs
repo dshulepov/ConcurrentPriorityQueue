@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 
 namespace ConcurrentPriorityQueue
 {
     /// <summary>
-    /// Heap-based implementation of concurrent, fixed-size priority queue.
+    /// Heap-based implementation of concurrent, fixed-size priority queue. Max priority is on top of the heap.
     /// </summary>
-    public class ConcurrentFixedSizePriorityQueue<TD, TK> : AbstractPriorityQueue<TD, TK>, IEnumerable<TD> where TK : IComparable<TK>
+    public class ConcurrentFixedSizePriorityQueue<TElement, TPriority> : AbstractPriorityQueue<TElement, TPriority> where TPriority : IComparable<TPriority>
     {
         private readonly object _sync = new object();
 
@@ -16,14 +15,17 @@ namespace ConcurrentPriorityQueue
         /// </summary>
         /// <param name="capacity">Maximum queue capacity. Should be greater than 0.</param>
         /// <param name="comparer">Priority comparer. Default for type will be used unless custom is provided.</param>
-        public ConcurrentFixedSizePriorityQueue(int capacity, IComparer<TK> comparer = null):base(capacity, comparer)
+        public ConcurrentFixedSizePriorityQueue(int capacity, IComparer<TPriority> comparer = null):base(capacity, comparer)
         {
         }
 
         private ConcurrentFixedSizePriorityQueue(Node[] nodes, int count, NodeComparer comparer):base(nodes, count, comparer)
         { }
 
-        public override void Enqueue(TD item, TK priority)
+        /// <summary>
+        /// Add new item to the queue.
+        /// </summary>
+        public override void Enqueue(TElement item, TPriority priority)
         {
             lock (_sync)
             {
@@ -33,9 +35,13 @@ namespace ConcurrentPriorityQueue
             }
         }
 
-        public override TD Dequeue()
+        /// <summary>
+        /// Remove and return the item with max priority from the queue.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public override TElement Dequeue()
         {
-            TD item;
+            TElement item;
             lock (_sync)
             {
                 item = base.Dequeue();
@@ -44,6 +50,9 @@ namespace ConcurrentPriorityQueue
             return item;
         }
 
+        /// <summary>
+        /// Remove all items from the queue. Capacity is not changed.
+        /// </summary>
         public override void Clear()
         {
             lock (_sync)
@@ -52,7 +61,11 @@ namespace ConcurrentPriorityQueue
             }
         }
 
-        public override bool Contains(TD item)
+        /// <summary>
+        /// Returns true if there is at least one item, which is equal to given.
+        /// TD.Equals is used to compare equality.
+        /// </summary>
+        public override bool Contains(TElement item)
         {
             lock (_sync)
             {
@@ -60,7 +73,33 @@ namespace ConcurrentPriorityQueue
             }
         }
 
-        public IEnumerator<TD> GetEnumerator()
+        /// <summary>
+        /// Returns the first element in the queue (element with max priority) without removing it from the queue.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public override TElement Peek()
+        {
+            lock (_sync)
+            {
+                return base.Peek();
+            }
+        }
+
+        /// <summary>
+        /// Update priority of the first occurrence of the given item
+        /// </summary>
+        /// <param name="item">Item, which priority should be updated.</param>
+        /// <param name="priority">New priority</param>
+        /// <exception cref="ArgumentException"></exception>
+        public override void UpdatePriority(TElement item, TPriority priority)
+        {
+            lock (_sync)
+            {
+                base.UpdatePriority(item, priority);
+            }
+        }
+
+        public override IEnumerator<TElement> GetEnumerator()
         {
             Node[] nodesCopy;
             lock (_sync)
@@ -70,14 +109,9 @@ namespace ConcurrentPriorityQueue
             // queue copy is created to be able to extract the items in the priority order
             // using the already existing dequeue method
             // (because they are not exactly in priority order in the underlying array)
-            var queueCopy = new ConcurrentFixedSizePriorityQueue<TD, TK>(nodesCopy, nodesCopy.Length - 1, _comparer);
+            var queueCopy = new ConcurrentFixedSizePriorityQueue<TElement, TPriority>(nodesCopy, nodesCopy.Length - 1, _comparer);
 
             return new PriorityQueueEnumerator(queueCopy);
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
     }
 }

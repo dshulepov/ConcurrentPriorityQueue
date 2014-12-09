@@ -40,6 +40,7 @@
   <ItemGroup>
     <Compile Include="AssertEx.cs" />
     <Compile Include="ExecWithStats.cs" />
+    <Compile Include="FunctionalTests\AbstractPriorityQueueTests.cs" />
     <Compile Include="FunctionalTests\ConcurrentFixedSizePriorityQueueTests.cs" />
     <Compile Include="FunctionalTests\ConcurrentPriorityQueueTests.cs" />
     <Compile Include="PerformanceTests\ConcurrentFixedSizePriorityQueueTests.cs" />

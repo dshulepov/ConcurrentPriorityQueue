@@ -38,6 +38,7 @@
     <Compile Include="AbstractPriorityQueue.cs" />
     <Compile Include="ConcurrentPriorityQueue.cs" />
     <Compile Include="ConcurrentFixedSizePriorityQueue.cs" />
+    <Compile Include="IPriorityQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
