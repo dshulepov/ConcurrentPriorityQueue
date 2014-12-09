@@ -15,6 +15,7 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - Performant ( `O(n) = nlog(n)` for enqueue and dequeue )
 - Fixed size support (items are dequeued before enqueueing when queue is full)
 - Resizing support (queue grows and shrinks depending on the number of items)
+- Alter priority of already enqueued item
 
 #Applications
 
@@ -23,7 +24,5 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - [Huffman coding](http://en.wikipedia.org/wiki/Huffman_coding)
 - [Best-first search algorithms](http://en.wikipedia.org/wiki/Best-first_search)
 - [ROAM triangulation algorithm](http://en.wikipedia.org/wiki/ROAM)
-
-The following applications require the ability to alter the priority, which is not yet supported:
 - [Dijkstra's algorithm](http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
 - [Prim's Algorithm](http://en.wikipedia.org/wiki/Prim%27s_algorithm) for Minimum Spanning Tree
