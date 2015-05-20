@@ -17,6 +17,10 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - Resizing support (queue grows and shrinks depending on the number of items)
 - Alter priority of already enqueued item
 
+#NuGet
+- Install `PM> Install-Package PriorityQueue`
+- [https://www.nuget.org/packages/PriorityQueue](https://www.nuget.org/packages/PriorityQueue/)
+
 #Applications
 
 - Bandwidth management
