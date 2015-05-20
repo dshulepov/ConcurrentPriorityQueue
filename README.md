@@ -26,3 +26,6 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - [ROAM triangulation algorithm](http://en.wikipedia.org/wiki/ROAM)
 - [Dijkstra's algorithm](http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
 - [Prim's Algorithm](http://en.wikipedia.org/wiki/Prim%27s_algorithm) for Minimum Spanning Tree
+
+#License
+Released under the MIT license.
