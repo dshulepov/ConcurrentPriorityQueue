@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>PriorityQueue</id>
+    <version>0.1.0</version>
+    <title>Concurrent Priority Queue</title>
+    <authors>Denis Shulepov</authors>
+    <owners>Denis Shulepov</owners>
+    <licenseUrl>https://github.com/dshulepov/ConcurrentPriorityQueue/blob/master/License.md</licenseUrl>
+    <projectUrl>https://github.com/dshulepov/ConcurrentPriorityQueue</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>C# implementation of generic heap-based concurrent priority queue for .NET</description>
+    <copyright>Copyright 2015</copyright>
+    <tags>PriorityQueue Heap Concurrent Generics</tags>
+  </metadata>
+  <files/>
+</package>
