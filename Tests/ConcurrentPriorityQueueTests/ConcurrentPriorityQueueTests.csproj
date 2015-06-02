@@ -43,6 +43,7 @@
     <Compile Include="FunctionalTests\AbstractPriorityQueueTests.cs" />
     <Compile Include="FunctionalTests\ConcurrentFixedSizePriorityQueueTests.cs" />
     <Compile Include="FunctionalTests\ConcurrentPriorityQueueTests.cs" />
+    <Compile Include="FunctionalTests\SkipListTests.cs" />
     <Compile Include="PerformanceTests\ConcurrentFixedSizePriorityQueueTests.cs" />
     <Compile Include="PerformanceTests\ConcurrentPriorityQueueTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
