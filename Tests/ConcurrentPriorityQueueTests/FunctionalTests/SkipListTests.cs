@@ -17,7 +17,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             var throws = false;
             try
             {
-                target.GetValue(1);
+                var a = target[1];
             }
             catch (KeyNotFoundException)
             {
@@ -37,22 +37,22 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             target.Add(2, "two");
 
             Assert.AreEqual(1, target.Count);
-            Assert.AreEqual("two", target.GetValue(2));
+            Assert.AreEqual("two", target[2]);
 
             target.Add(1, "one");
             Assert.AreEqual(2, target.Count);
-            Assert.AreEqual("one", target.GetValue(1));
-            Assert.AreEqual("two", target.GetValue(2));
+            Assert.AreEqual("one", target[1]);
+            Assert.AreEqual("two", target[2]);
 
             target.Add(3, "three");
             Assert.AreEqual(3, target.Count);
-            Assert.AreEqual("one", target.GetValue(1));
-            Assert.AreEqual("two", target.GetValue(2));
-            Assert.AreEqual("three", target.GetValue(3));
+            Assert.AreEqual("one", target[1]);
+            Assert.AreEqual("two", target[2]);
+            Assert.AreEqual("three", target[3]);
         }
 
         [TestMethod]
-        public void RandomAdditionTests()
+        public void RandomizedAdditionTests()
         {
             var target = new SkipList<int, int>();
             var random = new Random();
@@ -70,7 +70,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
                 Assert.AreEqual(i + 1, target.Count);
                 for (int j = 0; j <= i; j++)
                 {
-                    Assert.AreEqual(store[j], target.GetValue(store[j]));
+                    Assert.AreEqual(store[j], target[store[j]]);
                 }
             }
 
@@ -80,6 +80,76 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             {
                 Assert.AreEqual(store[i], pair.Key);
                 i++;
+            }
+        }
+
+        [TestMethod]
+        public void SimpleIndexerTests()
+        {
+            var target = new SkipList<int, int>();
+
+            target[3] = 1;
+            Assert.AreEqual(1, target.Count);
+            Assert.AreEqual(1, target[3]);
+
+            target[3] = 2;
+            Assert.AreEqual(1, target.Count);
+            Assert.AreEqual(2, target[3]);
+
+            target[2] = 2;
+            Assert.AreEqual(2, target.Count);
+            Assert.AreEqual(2, target[3]);
+            Assert.AreEqual(2, target[2]);
+
+            target[3] = 3;
+            Assert.AreEqual(2, target.Count);
+            Assert.AreEqual(3, target[3]);
+            Assert.AreEqual(2, target[2]);
+
+            target[1] = 1;
+            Assert.AreEqual(3, target.Count);
+            Assert.AreEqual(1, target[1]);
+            Assert.AreEqual(2, target[2]);
+            Assert.AreEqual(3, target[3]);
+        }
+
+        [TestMethod]
+        public void RandomizedIndexerTests()
+        {
+            var target = new SkipList<int, int>();
+            var random = new Random();
+            const int count = 200;
+            var store = new Dictionary<int, int>();
+
+            int i;
+            for (i = 0; i < count; i++)
+            {
+                int r = random.Next(count + 1);
+                if (store.ContainsKey(r))
+                {
+                    store[r]++;
+                }
+                else
+                {
+                    store[r] = 1;
+                }
+
+                if (target.ContainsKey(r))
+                {
+                    target[r]++;
+                }
+                else
+                {
+                    target[r] = 1;
+                }
+
+                //DebugOutputStructure(target);
+
+                Assert.AreEqual(store.Count, target.Count);
+                foreach (var pair in store)
+                {
+                    Assert.AreEqual(pair.Value, target[pair.Key]);
+                }
             }
         }
 
@@ -94,15 +164,15 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             }
 
             Console.WriteLine("=======================");
-            for (int i = 0; i < target._levels; i++)
+            for (int i = 0; i < target._height; i++)
             {
                 Console.Write("{0:00}", i);
-                if (target._head.Levels > i) Console.Write("H-");
+                if (target._head.Height > i) Console.Write("H-");
                 for (int j = 0; j < target.Count; j++)
                 {
                     node = nodes[j];
 
-                    if (node.Levels > i)
+                    if (node.Height > i)
                     {
                         Console.Write("{0:00}-", node.Key);
                     }
@@ -112,7 +182,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
                     }
 
                 }
-                if (target._tail.Levels > i) Console.WriteLine("T");
+                if (target._tail.Height > i) Console.WriteLine("T");
             }
         }
     }
