@@ -12,18 +12,12 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
         public void EmptySkipListTests()
         {
             var target = new SkipList<int, string>();
+            Assert.AreEqual(1, target._height);
+            Assert.AreEqual(SkipList<int, string>.HEIGHT_STEP, target._head.Height);
+            Assert.AreEqual(SkipList<int, string>.HEIGHT_STEP, target._tail.Height);
 
             Assert.AreEqual(0, target.Count);
-            var throws = false;
-            try
-            {
-                var a = target[1];
-            }
-            catch (KeyNotFoundException)
-            {
-                throws = true;
-            }
-            Assert.IsTrue(throws);
+            AssertEx.Throws<KeyNotFoundException>(() => { var a = target[1]; });
 
             var enumerator = target.GetEnumerator();
             Assert.IsFalse(enumerator.MoveNext());
@@ -49,6 +43,9 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             Assert.AreEqual("one", target[1]);
             Assert.AreEqual("two", target[2]);
             Assert.AreEqual("three", target[3]);
+
+            // max list height should not be more than (log n)
+            Assert.IsTrue(target._height <= 2);
         }
 
         [TestMethod]
@@ -60,6 +57,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             var store = new int[count];
 
             int i;
+            int maxHeight = 1;
             for (i = 0; i < count; i++)
             {
                 store[i] = random.Next(count + 1);
@@ -68,6 +66,11 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
                 //DebugOutputStructure(target);
 
                 Assert.AreEqual(i + 1, target.Count);
+
+                // max list height should not be more than (log n)
+                if ((1 << maxHeight) < i + 1) maxHeight++;
+                Assert.IsTrue(target._height <= maxHeight);
+
                 for (int j = 0; j <= i; j++)
                 {
                     Assert.AreEqual(store[j], target[store[j]]);
@@ -111,6 +114,9 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             Assert.AreEqual(1, target[1]);
             Assert.AreEqual(2, target[2]);
             Assert.AreEqual(3, target[3]);
+
+            // max list height should not be more than (log n)
+            Assert.IsTrue(target._height <= 2);
         }
 
         [TestMethod]
@@ -122,6 +128,7 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             var store = new Dictionary<int, int>();
 
             int i;
+            int maxHeight = 1;
             for (i = 0; i < count; i++)
             {
                 int r = random.Next(count + 1);
@@ -145,6 +152,10 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
 
                 //DebugOutputStructure(target);
 
+                // max list height should not be more than (log n)
+                if ((1 << maxHeight) < store.Count) maxHeight++;
+                Assert.IsTrue(target._height <= maxHeight);
+
                 Assert.AreEqual(store.Count, target.Count);
                 foreach (var pair in store)
                 {
@@ -153,7 +164,41 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
             }
         }
 
-        private void DebugOutputStructure<TKey, TValue>(SkipList<TKey, TValue> target) where TKey: IComparable<TKey>
+        [TestMethod]
+        public void SimpleRemoveByKeyTests()
+        {
+            var target = new SkipList<int, string>();
+
+            Assert.IsFalse(target.Remove(1));
+
+            target.Add(1, "one");
+            Assert.IsTrue(target.Remove(1));
+            Assert.IsFalse(target.Remove(1));
+            Assert.AreEqual(0, target.Count);
+
+            target.Add(1, "one");
+            target.Add(1, "second one");
+            Assert.AreEqual(2, target.Count);
+            Assert.AreEqual("one", target[1]);
+            Assert.IsTrue(target.Remove(1));
+            Assert.AreEqual(1, target.Count);
+            Assert.AreEqual("second one", target[1]);
+            Assert.IsTrue(target.Remove(1));
+            Assert.AreEqual(0, target.Count);
+
+            target.Add(1, "one");
+            target.Add(2, "two");
+            target.Add(3, "three");
+            Assert.AreEqual(3, target.Count);
+            Assert.IsFalse(target.Remove(4));
+            Assert.IsTrue(target.Remove(2));
+            Assert.AreEqual(2, target.Count);
+            AssertEx.Throws<KeyNotFoundException>(() => { var s = target[2]; });
+            Assert.AreEqual("one", target[1]);
+            Assert.AreEqual("three", target[3]);
+        }
+
+        private void DebugOutputStructure<TKey, TValue>(SkipList<TKey, TValue> target) where TKey : IComparable<TKey>
         {
             var nodes = new SkipList<TKey, TValue>.SkipListNode[target.Count];
             var node = target._head.GetNext(0);
@@ -180,7 +225,6 @@ namespace ConcurrentPriorityQueueTests.FunctionalTests
                     {
                         Console.Write("---");
                     }
-
                 }
                 if (target._tail.Height > i) Console.WriteLine("T");
             }

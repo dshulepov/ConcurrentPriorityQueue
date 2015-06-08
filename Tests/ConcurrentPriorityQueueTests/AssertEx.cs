@@ -17,7 +17,7 @@ namespace ConcurrentPriorityQueueTests
                 if (expectedException != null) return expectedException;
                 Assert.Fail(string.Format("Expected {0}, but {1} was thrown.", typeof(T), ex.GetType().Name));
             }
-            Assert.Fail("Failed to thow exception {0}", typeof(T));
+            Assert.Fail("Failed to throw exception {0}", typeof(T));
             return null;
         }
     }

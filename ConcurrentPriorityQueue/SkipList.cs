@@ -7,29 +7,31 @@ namespace ConcurrentPriorityQueue
 {
     public class SkipList<TKey, TValue> : IDictionary<TKey, TValue> where TKey:IComparable<TKey>
     {
-        internal readonly SkipListHeadNode _head;
-        internal readonly SkipListTailNode _tail;
+        internal readonly SkipListNode _head;
+        internal readonly SkipListNode _tail;
         internal int _height;
         private int _count;
         private readonly NodeComparer<TKey, TValue> _nodeComparer;
         private readonly Random _random;
-        private readonly int _maxHeight;
+        private const int MAX_HEIGHT = 32;
+        internal const int HEIGHT_STEP = 4;
+        private SkipListNode _lastFoundNode;
 
-        public SkipList(IComparer<TKey> comparer = null, int maxHeight = 16)
+        public SkipList(IComparer<TKey> comparer = null)
         {
             _nodeComparer = new NodeComparer<TKey, TValue>(comparer ?? Comparer<TKey>.Default);
             _random = new Random();
             _count = 0;
             _height = 1;
-            _maxHeight = maxHeight;
 
-            _head = new SkipListHeadNode(maxHeight);
-            _tail = new SkipListTailNode(maxHeight);
-            for (int i = 0; i < maxHeight; i++)
+            _head = new SkipListNode(default(TKey), default(TValue), HEIGHT_STEP);
+            _tail = new SkipListNode(default(TKey), default(TValue), HEIGHT_STEP);
+            for (int i = 0; i < HEIGHT_STEP; i++)
             {
                 _head.SetNext(i, _tail);
                 _tail.SetPrev(i, _head);
             }
+            _lastFoundNode = _head;
         }
 
         public void Add(KeyValuePair<TKey, TValue> item)
@@ -39,7 +41,7 @@ namespace ConcurrentPriorityQueue
 
         public void Clear()
         {
-            for (int i = 0; i < _maxHeight; i++)
+            for (int i = 0; i < MAX_HEIGHT; i++)
             {
                 _head.SetNext(i, _tail);
                 _tail.SetPrev(i, _head);
@@ -89,7 +91,7 @@ namespace ConcurrentPriorityQueue
         {
             var prev = FindNode(key);
             
-            AddNew(key, value, prev);
+            AddNewNode(key, value, prev);
         }
 
         public bool TryGetValue(TKey key, out TValue value)
@@ -111,11 +113,10 @@ namespace ConcurrentPriorityQueue
                 if (CompareNode(prev, key) == 0)
                 {
                     prev.Value = value;
-
                 }
                 else
                 {
-                    AddNew(key, value, prev);
+                    AddNewNode(key, value, prev);
                 }
             }
         }
@@ -142,76 +143,109 @@ namespace ConcurrentPriorityQueue
         private SkipListNode FindNode(TKey key)
         {
             var level = _height - 1;
-            SkipListNode node = _head;
+            var node = _head;
+            int cmp;
+            if (_lastFoundNode != _head)
+            {
+                if ((cmp = CompareNode(_lastFoundNode, key)) == 0) return _lastFoundNode;
+                if (cmp < 0)
+                {
+                    node = _lastFoundNode;
+                    level = _lastFoundNode.Height - 1;
+                }
+            }
 
             while (level >= 0)
             {
                 var next = node.GetNext(level);
-                int cmp;
                 while ((cmp = CompareNode(next, key)) < 0)
                 {
                     node = next;
                     next = next.GetNext(level);
                 }
-                if (cmp == 0) return next; 
+                if (cmp == 0)
+                {
+                    _lastFoundNode = next;
+                    return next;
+                } 
 
                 level--;
             }
+            _lastFoundNode = node;
             return node;
         }
 
-        private void AddNew(TKey key, TValue value, SkipListNode prev)
+        private void AddNewNode(TKey key, TValue value, SkipListNode prev)
         {
             var next = prev.GetNext(0);
+            var newNodeHeight = GetNewNodeHeight();
 
-            var newLevels = GetNewNodeHeight();
-
-            var newNode = new SkipListNode(key, value, newLevels);
-            InsertNode(newNode, newLevels, prev, next);
+            var newNode = new SkipListNode(key, value, newNodeHeight);
+            InsertNode(newNode, newNodeHeight, prev, next);
             _count++;
         }
 
         private int GetNewNodeHeight()
         {
-            int height = 1;
-            if (_height == _maxHeight)
+            var maxNodeHeight = _height;
+            if (maxNodeHeight < 32 && (1 << maxNodeHeight) < _count)
             {
-                height += _random.Next(_height);
+                maxNodeHeight++;
             }
-            else
+            var nodeHeight = 1 + _random.Next(maxNodeHeight);
+            if (nodeHeight > _height)
             {
-                height += _random.Next(_height + 1);
+                _height = nodeHeight;
+                if (_head.Height < _height)
+                {
+                    maxNodeHeight = _head.Height;
+                    _head.Grow(maxNodeHeight + HEIGHT_STEP);
+                    _tail.Grow(maxNodeHeight + HEIGHT_STEP);
+                    while (maxNodeHeight < _head.Height)
+                    {
+                        _head.SetNext(maxNodeHeight, _tail);
+                        _tail.SetPrev(maxNodeHeight, _head);
+                        maxNodeHeight++;
+                    }
+                }
             }
-
-            if (height > _height) _height = height;
-            return height;
+            return nodeHeight;
         }
 
-        private void InsertNode(SkipListNode node, int height, SkipListNode prev, SkipListNode next)
+        private void InsertNode(SkipListNode newNode, int height, SkipListNode prev, SkipListNode next)
         {
             for (int i = 0; i < height; i++)
             {
                 while (prev.Height <= i) prev = prev.GetPrev(i - 1);
                 while (next.Height <= i) next = next.GetNext(i - 1);
-                node.SetPrev(i, prev);
-                node.SetNext(i, next);
+                newNode.SetPrev(i, prev);
+                newNode.SetNext(i, next);
 
-                prev.SetNext(i, node);
-                next.SetPrev(i, node);
+                prev.SetNext(i, newNode);
+                next.SetPrev(i, newNode);
             }
         }
 
         private void DeleteNode(SkipListNode node)
         {
-            var prev = node.GetPrev(0);
-            var next = node.GetNext(0);
             for (int i = 0; i < node.Height; i++)
             {
+                var prev = node.GetPrev(i);
+                var next = node.GetNext(i);
+
                 while (prev.Height <= i) prev = prev.GetPrev(i - 1);
                 while (next.Height <= i) next = next.GetNext(i - 1);
 
                 prev.SetNext(i, next);
                 next.SetPrev(i, prev);
+            }
+
+            _lastFoundNode = _head;
+            _count--;
+
+            if (_height > 1 && (1 << _height) > _count)
+            {
+                _height--;
             }
         }
 
@@ -226,8 +260,8 @@ namespace ConcurrentPriorityQueue
         [DebuggerDisplay("Node [{Key},{Value}] ({Height})")]
         internal class SkipListNode : Node<TKey, TValue>
         {
-            protected SkipListNode[] _next;
-            protected SkipListNode[] _prev;
+            private SkipListNode[] _next;
+            private SkipListNode[] _prev;
 
             protected internal SkipListNode(TKey key, TValue value, int height) : base(key, value)
             {
@@ -235,79 +269,36 @@ namespace ConcurrentPriorityQueue
                 _prev = new SkipListNode[height];
             }
 
-            internal virtual int Height { get { return _next.Length; } }
+            internal int Height { get { return _next.Length; } }
 
-            public virtual SkipListNode GetNext(int level)
+            public SkipListNode GetNext(int level)
             {
                 return _next[level];
             }
 
-            public virtual void SetNext(int level, SkipListNode node)
+            public void SetNext(int level, SkipListNode node)
             {
                 _next[level] = node;
             }
 
-            public virtual void SetPrev(int level, SkipListNode node)
+            public void SetPrev(int level, SkipListNode node)
             {
                 _prev[level] = node;
             }
 
-            public virtual SkipListNode GetPrev(int level)
+            public SkipListNode GetPrev(int level)
             {
                 return _prev[level];
             }
 
-            public override string ToString()
+            internal void Grow(int height)
             {
-                return string.Format("Node [{0},{1}] ({2})", Key, Value, Height);
-            }
-        }
-
-        [DebuggerDisplay("Head ({Height})")]
-        internal class SkipListHeadNode : SkipListNode
-        {
-            protected internal SkipListHeadNode(int height) : base(default(TKey), default(TValue), height)
-            {
-            }
-
-            public override SkipListNode GetPrev(int level)
-            {
-                throw new InvalidOperationException("There is no element preceding head.");
-            }
-
-            public override void SetPrev(int level, SkipListNode node)
-            {
-                throw new InvalidOperationException("Not allowed to set element preceding head.");
-            }
-
-            public override string ToString()
-            {
-                return string.Format("Head ({0})", Height);
-            }
-        }
-
-        [DebuggerDisplay("Tail ({Height})")]
-        internal class SkipListTailNode : SkipListNode
-        {
-            protected internal SkipListTailNode(int height) : base(default(TKey), default(TValue), height)
-            {
-            }
-
-            internal override int Height { get { return _prev.Length; } }
-
-            public override SkipListNode GetNext(int level)
-            {
-                throw new InvalidOperationException("There is no element following tail.");
-            }
-
-            public override void SetNext(int level, SkipListNode node)
-            {
-                throw new InvalidOperationException("Not allowed to set element following tail.");
-            }
-
-            public override string ToString()
-            {
-                return string.Format("Tail ({0})", Height);
+                var newNext = new SkipListNode[height];
+                var newPrev = new SkipListNode[height];
+                Array.Copy(_next, newNext, _next.Length);
+                Array.Copy(_prev, newPrev, _prev.Length);
+                _next = newNext;
+                _prev = newPrev;
             }
         }
 
