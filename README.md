@@ -1,5 +1,7 @@
-ConcurrentPriorityQueue
-=======================
+#Not supported
+Moved to https://github.com/dshulepov/DataStructures
+
+##ConcurrentPriorityQueue
 
 C# implementation of generic heap-based concurrent [priority queue](http://en.wikipedia.org/wiki/Priority_queue) for .NET
 
@@ -9,7 +11,7 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 >served before an element with low priority. If two elements have the same 
 >priority, they are served according to their order in the queue.
 
-#Features
+###Features
 - Generic
 - Concurrent (i.e. supports multi-threading)
 - Performant ( `O(n) = nlog(n)` for enqueue and dequeue )
@@ -17,11 +19,11 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - Resizing support (queue grows and shrinks depending on the number of items)
 - Alter priority of already enqueued item
 
-#NuGet
+###NuGet
 - Install `PM> Install-Package PriorityQueue`
 - [https://www.nuget.org/packages/PriorityQueue](https://www.nuget.org/packages/PriorityQueue/)
 
-#Applications
+###Applications
 
 - Bandwidth management
 - [Discrete event simulation](http://en.wikipedia.org/wiki/Discrete_event_simulation)
@@ -31,5 +33,5 @@ C# implementation of generic heap-based concurrent [priority queue](http://en.wi
 - [Dijkstra's algorithm](http://en.wikipedia.org/wiki/Dijkstra%27s_algorithm)
 - [Prim's Algorithm](http://en.wikipedia.org/wiki/Prim%27s_algorithm) for Minimum Spanning Tree
 
-#License
+##License
 Released under the MIT license.
